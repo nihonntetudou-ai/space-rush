@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPACE RUSH - 完全1画面統合UI (スクロール対応版)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            user-select: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* 宇宙背景アニメーション */
+        .stars-bg {
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+
+        /* ネオン・発光エフェクト */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+        .glow-gold {
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
+        }
+
+        .click-btn {
+            transition: transform 0.05s ease, box-shadow 0.1s ease;
+        }
+        .click-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* ポップアップテキストアニメーション */
+        @keyframes floatUpFade {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+        .particle-text {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUpFade 0.8s ease-out forwards;
+            font-weight: 800;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 8px rgba(0,255,255,0.8);
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="stars-bg min-h-screen flex flex-col justify-between text-sm">
+
+    <!-- ヘッダーバー -->
+    <header class="bg-gray-900/90 border-b border-cyan-900/50 backdrop-blur px-4 py-3 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid font-orbitron text-cyan-400 text-2xl fa-rocket"></i>
+            <h1 class="font-orbitron text-base sm:text-xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500">
+                SPACE RUSH <span class="text-xs font-normal text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded">ULTIMATE</span>
+            </h1>
+        </div>
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <button id="btnSave" class="bg-gray-800 hover:bg-gray-700 text-cyan-300 border border-cyan-700 px-3 py-1.5 rounded text-xs transition cursor-pointer">
+                <i class="fa-solid fa-floppy-disk mr-1"></i>保存
+            </button>
+            <button id="btnReset" class="bg-red-950/60 hover:bg-red-900 text-red-400 border border-red-800 px-3 py-1.5 rounded text-xs transition cursor-pointer">
+                <i class="fa-solid fa-rotate-right mr-1"></i>初期化
+            </button>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ (スクロール対応フレックスグリッド) -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 max-w-[1600px] mx-auto w-full">
+
+        <!-- 左列: ステータス・装備・開発者コード (3列) -->
+        <section class="lg:col-span-3 flex flex-col space-y-4">
+            <!-- ポイント＆ステータスカード -->
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 backdrop-blur glow-cyan">
+                <div class="text-xs text-gray-400 font-semibold mb-1 flex items-center justify-between">
+                    <span><i class="fa-solid fa-coins text-yellow-400 mr-1"></i>所持ポイント</span>
+                    <span id="rebirthMultiplierBadge" class="text-purple-400 text-[10px] bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800">転生倍率: x1.0</span>
+                </div>
+                <div id="dispPoints" class="font-orbitron text-2xl md:text-3xl font-black text-yellow-300 break-all leading-tight">0</div>
+                
+                <div class="grid grid-cols-2 gap-2 mt-3 text-xs border-t border-gray-800 pt-3">
+                    <div>
+                        <div class="text-gray-400">1回あたりの獲得</div>
+                        <div id="dispClickPower" class="font-orbitron text-cyan-400 font-bold break-all">+1</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400">秒間自動収入</div>
+                        <div id="dispAutoIncome" class="font-orbitron text-purple-400 font-bold break-all">+0/s</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 装備中の武器 -->
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 backdrop-blur">
+                <div class="text-xs text-cyan-400 font-bold mb-2.5 flex items-center">
+                    <i class="fa-solid fa-crosshair mr-1.5"></i>装備中のメイン装備
+                </div>
+                <div class="flex items-center space-x-3 bg-gray-950/60 p-3 rounded-lg border border-gray-800">
+                    <div id="equippedIcon" class="w-10 h-10 rounded bg-cyan-950/60 border border-cyan-800 flex items-center justify-center text-cyan-300 text-lg">
+                        <i class="fa-solid fa-hand"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div id="equippedName" class="font-bold text-gray-200 truncate">石 (素手)</div>
+                        <div id="equippedPower" class="text-xs text-cyan-400 font-orbitron">+1 pt/click</div>
+                        <div id="equippedLevel" class="text-[10px] text-gray-400">強化 Lv.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 統計情報 -->
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 backdrop-blur text-xs space-y-2">
+                <div class="text-gray-400 font-bold border-b border-gray-800 pb-1.5 mb-1.5 flex justify-between">
+                    <span><i class="fa-solid fa-chart-line mr-1"></i>プレイ統計</span>
+                    <span id="dispCollectionRate" class="text-cyan-400">達成率: 0%</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>累計獲得ポイント:</span>
+                    <span id="statTotalPoints" class="font-orbitron text-gray-100">0</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>累計タップ/SPACE:</span>
+                    <span id="statTotalClicks" class="font-orbitron text-gray-100">0</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>所有アイテム数:</span>
+                    <span id="statOwnedItems" class="font-orbitron text-gray-100">1 / 110+</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>転生回数:</span>
+                    <span id="statRebirths" class="font-orbitron text-purple-400">0</span>
+                </div>
+            </div>
+
+            <!-- 転生セクション -->
+            <div class="bg-gradient-to-br from-purple-950/40 to-gray-900/80 border border-purple-900/50 rounded-xl p-4 backdrop-blur text-xs">
+                <div class="text-purple-300 font-bold mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-infinity mr-1"></i>宇宙転生 (Rebirth)</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mb-2.5">全要素をリセットし、獲得倍率を大幅増加（+100%）します。</p>
+                <div class="text-gray-300 mb-2.5">
+                    必要ポイント: <span id="rebirthCost" class="font-orbitron text-purple-300 font-bold">1.00億</span>
+                </div>
+                <button id="btnRebirth" class="w-full bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 py-2 rounded-lg font-bold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    転生を実行する
+                </button>
+            </div>
+
+            <!-- 開発者コード入力 -->
+            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 backdrop-blur text-xs">
+                <div class="text-gray-300 font-bold mb-2 flex items-center">
+                    <i class="fa-solid fa-key text-yellow-500 mr-1.5"></i>開発者アクセスコード
+                </div>
+                <div class="flex space-x-2">
+                    <input type="text" id="devCodeInput" placeholder="コードを入力..." class="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300 font-orbitron focus:outline-none focus:border-cyan-500">
+                    <button id="btnDevAuth" class="bg-yellow-700/60 hover:bg-yellow-600 text-yellow-200 border border-yellow-600 px-3 py-1.5 rounded-lg font-bold transition cursor-pointer">
+                        認証
+                    </button>
+                </div>
+                <div id="devMessage" class="text-[10px] mt-2 h-4 text-cyan-400 font-mono"></div>
+            </div>
+        </section>
+
+        <!-- 中央: ゲームコア・操作・ビジュアル (4列) -->
+        <section class="lg:col-span-4 flex flex-col justify-between items-center bg-gray-900/50 border border-gray-800/80 rounded-xl p-6 backdrop-blur relative overflow-hidden min-h-[450px]">
+            <!-- 視覚エフェクト領域 ＆ ディスプレイ側タップ/SPACEボタン -->
+            <div id="clickArea" class="w-full flex-1 flex flex-col items-center justify-center relative select-none my-6">
+                
+                <!-- ディスプレイ画面用タップ / SPACEボタン -->
+                <div class="relative group my-auto flex flex-col items-center">
+                    <div class="absolute -inset-6 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 rounded-full blur-lg opacity-40 group-hover:opacity-75 transition duration-300 animate-pulse"></div>
+                    <button id="mainClickBtn" class="click-btn relative w-52 h-52 sm:w-64 sm:h-64 rounded-full bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 border-4 border-cyan-400 flex flex-col items-center justify-center shadow-2xl focus:outline-none glow-cyan cursor-pointer">
+                        <div id="mainWeaponIcon" class="text-6xl sm:text-7xl text-cyan-300 mb-2 transition transform group-hover:scale-110">
+                            <i class="fa-solid fa-hand"></i>
+                        </div>
+                        <span class="text-xs sm:text-sm font-orbitron font-black tracking-widest text-cyan-400 uppercase">PUSH SPACE / TAP</span>
+                        <span class="text-[11px] text-gray-300 font-bold mt-1 bg-cyan-950/80 px-3 py-0.5 rounded-full border border-cyan-700">エネルギー生成ボタン</span>
+                    </button>
+                </div>
+
+                <!-- ガイドメッセージ -->
+                <div class="text-center mt-6 text-gray-300 text-xs bg-gray-950/70 px-4 py-2 rounded-full border border-gray-800">
+                    <p><i class="fa-solid fa-keyboard text-cyan-400 mr-1"></i>キーボードの <span class="text-cyan-300 font-bold">[SPACE]</span> キー または ボタンをタップ！</p>
+                </div>
+            </div>
+
+            <!-- 下部：クイックミニログ -->
+            <div class="w-full bg-gray-950/90 border border-gray-800 rounded-lg p-3 text-[11px] text-gray-400 h-20 overflow-y-auto font-mono" id="gameLog">
+                <div class="text-cyan-400">[SYSTEM] SPACE RUSH (完全スクロール対応版) へようこそ！</div>
+            </div>
+        </section>
+
+        <!-- 右列: ショップ＆強化 (110+アイテム・検索・フィルタ) (5列) -->
+        <section class="lg:col-span-5 flex flex-col bg-gray-900/80 border border-gray-800 rounded-xl p-4 backdrop-blur">
+            <!-- ショップヘッダー / フィルター -->
+            <div class="space-y-3 mb-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-extrabold text-cyan-300 text-sm flex items-center">
+                        <i class="fa-solid fa-cart-shopping mr-1.5"></i>開発・調達センター (110+ Items)
+                    </h2>
+                    <select id="sortSelect" class="bg-gray-950 border border-gray-700 text-xs text-gray-300 rounded-lg px-2 py-1 focus:outline-none cursor-pointer">
+                        <option value="priceAsc">価格: 安い順</option>
+                        <option value="priceDesc">価格: 高い順</option>
+                        <option value="name">名前順</option>
+                    </select>
+                </div>
+
+                <!-- カテゴリタブ（スクロール対応） -->
+                <div class="flex space-x-1.5 overflow-x-auto pb-1 text-xs no-scrollbar" id="categoryTabs">
+                    <!-- JSで動的生成 -->
+                </div>
+
+                <!-- 検索バー -->
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="アイテム名・効果を検索..." class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-500 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- ショップアイテムリスト（スクロール対応エリア） -->
+            <div id="shopList" class="flex-1 max-h-[600px] lg:max-h-[calc(100vh-260px)] overflow-y-auto space-y-2.5 pr-1">
+                <!-- JSで動적レンダリング -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-gray-950 text-center py-3 text-xs text-gray-500 border-t border-gray-900 mt-6">
+        SPACE RUSH ULTIMATE &copy; 2026 - All Rights Reserved.
+    </footer>
+
+    <!-- モーダル・通知ダイアログ -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-gray-900 border border-cyan-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 id="modalTitle" class="text-base font-bold text-cyan-300 border-b border-gray-800 pb-2.5">通知</h3>
+            <p id="modalBody" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"></p>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button id="modalBtnCancel" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs transition cursor-pointer hidden">キャンセル</button>
+                <button id="modalBtnConfirm" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded-lg text-xs transition cursor-pointer">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲームロジック用スクリプト -->
+    <script>
+        /* ==========================================================================
+           1. 巨大数 (BigInt) & 単位システム
+           ========================================================================== */
+        const JAPANESE_UNITS = [
+            { value: 10n**68n, symbol: '無量大数' },
+            { value: 10n**64n, symbol: '不可不思議' },
+            { value: 10n**60n, symbol: '那由他' },
+            { value: 10n**56n, symbol: '阿僧祇' },
+            { value: 10n**52n, symbol: '恒河沙' },
+            { value: 10n**48n, symbol: '極' },
+            { value: 10n**44n, symbol: '載' },
+            { value: 10n**40n, symbol: '正' },
+            { value: 10n**36n, symbol: '澗' },
+            { value: 10n**32n, symbol: '溝' },
+            { value: 10n**28n, symbol: '穣' },
+            { value: 10n**24n, symbol: '𥝱' },
+            { value: 10n**20n, symbol: '垓' },
+            { value: 10n**16n, symbol: '京' },
+            { value: 10n**12n, symbol: '兆' },
+            { value: 10n**8n,  symbol: '億' },
+            { value: 10n**4n,  symbol: '万' }
+        ];
+
+        function formatBigInt(val) {
+            if (val === undefined || val === null) return "0";
+            let n = BigInt(val);
+            if (n < 0n) return "0";
+            if (n < 10000n) return n.toString();
+
+            if (n >= 10n**72n) {
+                let str = n.toString();
+                let exp = str.length - 1;
+                let mantissa = (Number(str.substring(0, 3)) / 100).toFixed(2);
+                return `${mantissa}e+${exp}`;
+            }
+
+            for (let u of JAPANESE_UNITS) {
+                if (n >= u.value) {
+                    let main = n / u.value;
+                    let remainder = n % u.value;
+                    let decScale = u.value / 100n;
+                    let dec = decScale > 0n ? (remainder / decScale) : 0n;
+                    let decStr = dec < 10n ? `0${dec}` : `${dec}`;
+                    if (decStr === '00') return `${main}${u.symbol}`;
+                    return `${main}.${decStr}${u.symbol}`;
+                }
+            }
+            return n.toString();
+        }
+
+        /* ==========================================================================
+           2. 110種類以上のアイテムデータベース (12カテゴリ)
+           ========================================================================== */
+        const CATEGORIES = [
+            { id: 'all', name: 'すべて', icon: 'fa-list' },
+            { id: 'weapon', name: '武器', icon: 'fa-gun' },
+            { id: 'cpu', name: 'CPU', icon: 'fa-microchip' },
+            { id: 'robot', name: 'ロボット', icon: 'fa-robot' },
+            { id: 'energy', name: 'エネルギー', icon: 'fa-bolt' },
+            { id: 'armor', name: '防具・補助', icon: 'fa-shield-halved' },
+            { id: 'tech', name: '特殊技術', icon: 'fa-atom' },
+            { id: 'secret', name: '秘密アイテム', icon: 'fa-user-secret' },
+            { id: 'rocket', name: 'ロケット', icon: 'fa-rocket' },
+            { id: 'vehicle', name: '地上車両', icon: 'fa-car' },
+            { id: 'aircraft', name: '航空機', icon: 'fa-plane' },
+            { id: 'spaceship', name: '宇宙船', icon: 'fa-shuttle-space' },
+            { id: 'ultimate', name: '最終兵器', icon: 'fa-dumpster-fire' }
+        ];
+
+        function generateItemDatabase() {
+            const db = [];
+            
+            // 1. 武器 (20種)
+            const baseWeapons = [
+                { id: 'w_1', name: '石 (素手)', price: 0n, cPower: 1n, icon: 'fa-hand' },
+                { id: 'w_2', name: 'ハンドガン', price: 50n, cPower: 3n, icon: 'fa-gun' },
+                { id: 'w_3', name: 'ガトリングガン', price: 300n, cPower: 15n, icon: 'fa-align-justify' },
+                { id: 'w_4', name: 'レーザーライフル', price: 1500n, cPower: 80n, icon: 'fa-bolt-lightning' },
+                { id: 'w_5', name: 'プラズマ砲', price: 8000n, cPower: 450n, icon: 'fa-circle-radiation' },
+                { id: 'w_6', name: 'ゴールデンソード', price: 40000n, cPower: 2500n, icon: 'fa-hand-back-fist' },
+                { id: 'w_7', name: 'アナイアレーター', price: 200000n, cPower: 14000n, icon: 'fa-burst' },
+                { id: 'w_8', name: 'コズミックゼロ', price: 1000000n, cPower: 80000n, icon: 'fa-meteor' },
+                { id: 'w_9', name: 'ダークマター砲', price: 5000000n, cPower: 500000n, icon: 'fa-circle-dot' },
+                { id: 'w_10', name: '恒星級レーザー', price: 30000000n, cPower: 3500000n, icon: 'fa-sun' },
+                { id: 'w_11', name: '銀河破壊砲', price: 200000000n, cPower: 25000000n, icon: 'fa-explosion' },
+                { id: 'w_12', name: '次元破壊兵器', price: 1000000000n, cPower: 150000000n, icon: 'fa-cubes-stacked' },
+                { id: 'w_13', name: '神級兵器ゼウス', price: 10n**11n, cPower: 10n**10n, icon: 'fa-bolt' },
+                { id: 'w_14', name: '時空支配コア', price: 10n**13n, cPower: 10n**12n, icon: 'fa-dharmachakra' },
+                { id: 'w_15', name: '宇宙の心臓', price: 10n**15n, cPower: 10n**14n, icon: 'fa-heart-pulse' },
+                { id: 'w_16', name: '因果律崩壊キャノン', price: 10n**17n, cPower: 10n**16n, icon: 'fa-infinity' },
+                { id: 'w_17', name: 'ビッグバン・ブラスター', price: 10n**19n, cPower: 10n**18n, icon: 'fa-bahai' },
+                { id: 'w_18', name: '超次元断裂剣', price: 10n**21n, cPower: 10n**20n, icon: 'fa-wand-magic-sparkles' },
+                { id: 'w_19', name: 'オメガジェネシス', price: 10n**23n, cPower: 10n**22n, icon: 'fa-atom' },
+                { id: 'w_20', name: 'SPACE RUSH: ETERNITY', price: 10n**25n, cPower: 10n**24n, icon: 'fa-crown' }
+            ];
+            baseWeapons.forEach(w => {
+                db.push({
+                    id: w.id, name: w.name, category: 'weapon',
+                    price: w.price, clickPower: w.cPower, autoIncome: 0n,
+                    unlocked: w.price === 0n, purchased: w.price === 0n, equipped: w.price === 0n, level: 0, icon: w.icon
+                });
+            });
+
+            // 2. CPU (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 100n * (10n ** BigInt(i));
+                let income = 15n * (10n ** BigInt(i));
+                db.push({
+                    id: `cpu_${i}`, name: `量子CPU Mk-${i}`, category: 'cpu',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-microchip'
+                });
+            }
+
+            // 3. ロボット (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 500n * (10n ** BigInt(i));
+                let income = 80n * (10n ** BigInt(i));
+                db.push({
+                    id: `bot_${i}`, name: `自動労働ロボ UNIT-${i}`, category: 'robot',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-robot'
+                });
+            }
+
+            // 4. エネルギー装置 (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 2500n * (10n ** BigInt(i));
+                let income = 450n * (10n ** BigInt(i));
+                db.push({
+                    id: `nrg_${i}`, name: `核融合ジェネレーター Type-${i}`, category: 'energy',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-charging-station'
+                });
+            }
+
+            // 5. 防具・補助装備 (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 10000n * (10n ** BigInt(i));
+                let cP = 1500n * (10n ** BigInt(i));
+                db.push({
+                    id: `arm_${i}`, name: `ナノバリア Shield-${i}`, category: 'armor',
+                    price: cost, clickPower: cP, autoIncome: 0n,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-shield'
+                });
+            }
+
+            // 6. 特殊技術 (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 50000n * (10n ** BigInt(i));
+                let income = 8000n * (10n ** BigInt(i));
+                db.push({
+                    id: `tch_${i}`, name: `反物質応用研究 Vol.${i}`, category: 'tech',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-flask'
+                });
+            }
+
+            // 7. 秘密アイテム (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 200000n * (10n ** BigInt(i));
+                let cP = 30000n * (10n ** BigInt(i));
+                db.push({
+                    id: `sec_${i}`, name: `机の奥の古文書 Class-${i}`, category: 'secret',
+                    price: cost, clickPower: cP, autoIncome: cP / 2n,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-user-secret'
+                });
+            }
+
+            // 8. ロケット (8種)
+            for (let i = 1; i <= 8; i++) {
+                let cost = 10n**6n * (10n ** BigInt(i * 2));
+                let income = 2n**5n * (10n ** BigInt(i * 2));
+                db.push({
+                    id: `rkt_${i}`, name: `探査ロケット Saturn-X${i}`, category: 'rocket',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-rocket'
+                });
+            }
+
+            // 9. 地上車両 (8種)
+            for (let i = 1; i <= 8; i++) {
+                let cost = 5n**6n * (10n ** BigInt(i * 2));
+                let cP = 3n**5n * (10n ** BigInt(i * 2));
+                db.push({
+                    id: `vhc_${i}`, name: `反重力レーシングカー SRV-${i}`, category: 'vehicle',
+                    price: cost, clickPower: cP, autoIncome: 0n,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-car-side'
+                });
+            }
+
+            // 10. 航空機 (8種)
+            for (let i = 1; i <= 8; i++) {
+                let cost = 10n**7n * (10n ** BigInt(i * 2));
+                let income = 10n**6n * (10n ** BigInt(i * 2));
+                db.push({
+                    id: `air_${i}`, name: `大気圏外戦闘機 Jet-${i}`, category: 'aircraft',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-plane-departure'
+                });
+            }
+
+            // 11. 宇宙船 (8種)
+            for (let i = 1; i <= 8; i++) {
+                let cost = 10n**9n * (10n ** BigInt(i * 2));
+                let income = 10n**8n * (10n ** BigInt(i * 2));
+                db.push({
+                    id: `spc_${i}`, name: `超光速移動母艦 Enterprise-V${i}`, category: 'spaceship',
+                    price: cost, clickPower: 0n, autoIncome: income,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-shuttle-space'
+                });
+            }
+
+            // 12. 最終兵器 (10種)
+            for (let i = 1; i <= 10; i++) {
+                let cost = 10n**12n * (10n ** BigInt(i * 2));
+                let cP = 10n**11n * (10n ** BigInt(i * 2));
+                let inc = 10n**10n * (10n ** BigInt(i * 2));
+                db.push({
+                    id: `ult_${i}`, name: `巨大神体ロボ GIGA-RUSH Mark-${i}`, category: 'ultimate',
+                    price: cost, clickPower: cP, autoIncome: inc,
+                    unlocked: false, purchased: false, equipped: false, level: 0, icon: 'fa-dumpster-fire'
+                });
+            }
+
+            return db;
+        }
+
+        /* ==========================================================================
+           3. グローバルゲーム状態 (State Management)
+           ========================================================================== */
+        let state = {
+            points: 0n,
+            totalPoints: 0n,
+            totalClicks: 0n,
+            rebirths: 0n,
+            rebirthMultiplier: 1.0,
+            devTestMode: false,
+            items: [],
+            activeCategory: 'all',
+            searchQuery: '',
+            sortBy: 'priceAsc'
+        };
+
+        function recalculateStats() {
+            let baseClick = 1n;
+            let baseAuto = 0n;
+
+            state.items.forEach(item => {
+                if (item.purchased) {
+                    let lvlBonus = BigInt(item.level);
+                    let itemAuto = item.autoIncome + (item.autoIncome * lvlBonus);
+                    baseAuto += itemAuto;
+
+                    if (item.equipped) {
+                        let itemClick = item.clickPower + (item.clickPower * lvlBonus);
+                        if (itemClick > baseClick) {
+                            baseClick = itemClick;
+                        }
+                    }
+                }
+            });
+
+            let mult = BigInt(Math.floor(state.rebirthMultiplier * 100));
+            let finalClick = (baseClick * mult) / 100n;
+            let finalAuto = (baseAuto * mult) / 100n;
+
+            return {
+                clickPower: finalClick < 1n ? 1n : finalClick,
+                autoIncome: finalAuto
+            };
+        }
+
+        /* ==========================================================================
+           4. UIレンダリングロジック
+           ========================================================================== */
+        function updateUI() {
+            const stats = recalculateStats();
+
+            document.getElementById('dispPoints').innerText = formatBigInt(state.points);
+            document.getElementById('dispClickPower').innerText = '+' + formatBigInt(stats.clickPower);
+            document.getElementById('dispAutoIncome').innerText = '+' + formatBigInt(stats.autoIncome) + '/s';
+            document.getElementById('rebirthMultiplierBadge').innerText = `転生倍率: x${state.rebirthMultiplier.toFixed(1)}`;
+
+            let equippedItem = state.items.find(i => i.equipped) || state.items[0];
+            document.getElementById('equippedName').innerText = equippedItem.name;
+            document.getElementById('equippedPower').innerText = '+' + formatBigInt(equippedItem.clickPower) + ' pt/click';
+            document.getElementById('equippedLevel').innerText = `強化 Lv.${equippedItem.level}`;
+            document.getElementById('equippedIcon').innerHTML = `<i class="fa-solid ${equippedItem.icon}"></i>`;
+            document.getElementById('mainWeaponIcon').innerHTML = `<i class="fa-solid ${equippedItem.icon}"></i>`;
+
+            document.getElementById('statTotalPoints').innerText = formatBigInt(state.totalPoints);
+            document.getElementById('statTotalClicks').innerText = state.totalClicks.toString();
+            
+            let ownedCount = state.items.filter(i => i.purchased).length;
+            document.getElementById('statOwnedItems').innerText = `${ownedCount} / ${state.items.length}`;
+            document.getElementById('statRebirths').innerText = state.rebirths.toString();
+            
+            let percent = ((ownedCount / state.items.length) * 100).toFixed(1);
+            document.getElementById('dispCollectionRate').innerText = `達成率: ${percent}%`;
+
+            let rebirthCost = 10n**8n * (50n ** state.rebirths);
+            document.getElementById('rebirthCost').innerText = formatBigInt(rebirthCost);
+            document.getElementById('btnRebirth').disabled = state.points < rebirthCost;
+
+            renderShop();
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shopList');
+            container.innerHTML = '';
+
+            let filtered = state.items.filter(item => {
+                if (state.activeCategory !== 'all' && item.category !== state.activeCategory) return false;
+                if (state.searchQuery) {
+                    let q = state.searchQuery.toLowerCase();
+                    if (!item.name.toLowerCase().includes(q)) return false;
+                }
+                return true;
+            });
+
+            filtered.sort((a, b) => {
+                if (state.sortBy === 'priceAsc') return a.price > b.price ? 1 : -1;
+                if (state.sortBy === 'priceDesc') return a.price < b.price ? 1 : -1;
+                if (state.sortBy === 'name') return a.name.localeCompare(b.name);
+                return 0;
+            });
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border transition backdrop-blur flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 ${
+                    item.equipped 
+                        ? 'bg-cyan-950/40 border-cyan-500/80' 
+                        : item.purchased 
+                            ? 'bg-gray-900/60 border-gray-700' 
+                            : 'bg-gray-950/70 border-gray-800 hover:border-gray-700'
+                }`;
+
+                let upgradeCost = item.price / 2n * BigInt(item.level + 1);
+                if (upgradeCost === 0n) upgradeCost = 100n * BigInt(item.level + 1);
+
+                let canAffordBuy = state.points >= item.price;
+                let canAffordUpgrade = state.points >= upgradeCost;
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 w-full sm:w-auto flex-1 min-w-0">
+                        <div class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-cyan-400 text-base shrink-0">
+                            <i class="fa-solid ${item.icon}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-1.5 flex-wrap">
+                                <span class="font-bold text-xs text-gray-200 truncate">${item.name}</span>
+                                ${item.equipped ? '<span class="text-[9px] bg-cyan-900 text-cyan-300 px-1.5 py-0.5 rounded">装備中</span>' : ''}
+                                ${item.purchased && !item.equipped ? '<span class="text-[9px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded">所持済</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-gray-400 flex items-center space-x-2 mt-0.5 flex-wrap">
+                                ${item.clickPower > 0n ? `<span class="text-cyan-400 font-orbitron">+${formatBigInt(item.clickPower)}/c</span>` : ''}
+                                ${item.autoIncome > 0n ? `<span class="text-purple-400 font-orbitron">+${formatBigInt(item.autoIncome)}/s</span>` : ''}
+                                ${item.level > 0 ? `<span class="text-yellow-500 font-orbitron">Lv.${item.level}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-end gap-1.5 w-full sm:w-auto shrink-0 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-gray-800">
+                        ${!item.purchased ? `
+                            <button onclick="buyItem('${item.id}')" ${!canAffordBuy ? 'disabled' : ''} 
+                                class="bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-800 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition font-orbitron cursor-pointer">
+                                ${formatBigInt(item.price)} pt
+                            </button>
+                        ` : `
+                            <div class="flex items-center space-x-1.5 w-full sm:w-auto justify-end">
+                                ${item.category === 'weapon' || item.category === 'armor' || item.category === 'vehicle' ? `
+                                    <button onclick="equipItem('${item.id}')" ${item.equipped ? 'disabled' : ''}
+                                        class="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-xs px-3 py-1.5 rounded-lg text-gray-200 transition cursor-pointer">
+                                        ${item.equipped ? '装備中' : '装備'}
+                                    </button>
+                                ` : ''}
+                                <button onclick="upgradeItem('${item.id}')" ${!canAffordUpgrade ? 'disabled' : ''}
+                                    class="bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-800 disabled:opacity-40 text-yellow-100 text-xs px-3 py-1.5 rounded-lg font-bold transition cursor-pointer">
+                                    強化 (${formatBigInt(upgradeCost)})
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function initCategoryTabs() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            tabsContainer.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-full border whitespace-nowrap text-xs transition flex items-center space-x-1 cursor-pointer ${
+                    state.activeCategory === cat.id 
+                        ? 'bg-cyan-950 border-cyan-500 text-cyan-300 font-bold' 
+                        : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-gray-200'
+                }`;
+                btn.innerHTML = `<i class="fa-solid ${cat.icon} text-[10px]"></i><span>${cat.name}</span>`;
+                btn.onclick = () => {
+                    state.activeCategory = cat.id;
+                    initCategoryTabs();
+                    renderShop();
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        /* ==========================================================================
+           5. ゲームアクション
+           ========================================================================== */
+        function triggerClick(e) {
+            const stats = recalculateStats();
+            state.points += stats.clickPower;
+            state.totalPoints += stats.clickPower;
+            state.totalClicks += 1n;
+
+            createFloatingText(e, `+${formatBigInt(stats.clickPower)}`);
+            updateUI();
+        }
+
+        function createFloatingText(e, text) {
+            const area = document.getElementById('clickArea');
+            const rect = area.getBoundingClientRect();
+            
+            let x = rect.width / 2;
+            let y = rect.height / 2;
+
+            if (e && e.clientX) {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+
+            const el = document.createElement('div');
+            el.className = 'particle-text text-cyan-300 text-sm';
+            el.innerText = text;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+
+            area.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        window.buyItem = function(id) {
+            let item = state.items.find(i => i.id === id);
+            if (!item || item.purchased) return;
+
+            if (state.points >= item.price) {
+                state.points -= item.price;
+                item.purchased = true;
+                
+                if (item.category === 'weapon') {
+                    state.items.forEach(i => { if (i.category === 'weapon') i.equipped = false; });
+                    item.equipped = true;
+                }
+
+                logMessage(`[購入成功] ${item.name} を購入しました。`);
+                updateUI();
+            } else {
+                showModal("ポイント不足", "所持ポイントが不足しています。");
+            }
+        };
+
+        window.equipItem = function(id) {
+            let item = state.items.find(i => i.id === id);
+            if (!item || !item.purchased) return;
+
+            state.items.forEach(i => {
+                if (i.category === item.category) i.equipped = false;
+            });
+            item.equipped = true;
+
+            logMessage(`[装備変更] ${item.name} を装備しました。`);
+            updateUI();
+        };
+
+        window.upgradeItem = function(id) {
+            let item = state.items.find(i => i.id === id);
+            if (!item || !item.purchased) return;
+
+            let upgradeCost = item.price / 2n * BigInt(item.level + 1);
+            if (upgradeCost === 0n) upgradeCost = 100n * BigInt(item.level + 1);
+
+            if (state.points >= upgradeCost) {
+                state.points -= upgradeCost;
+                item.level += 1;
+                logMessage(`[強化完了] ${item.name} が Lv.${item.level} に強化されました！`);
+                updateUI();
+            } else {
+                showModal("ポイント不足", "強化に必要なポイントが不足しています。");
+            }
+        };
+
+        document.getElementById('btnRebirth').onclick = () => {
+            let rebirthCost = 10n**8n * (50n ** state.rebirths);
+            if (state.points < rebirthCost) return;
+
+            showModal(
+                "宇宙転生を実行しますか？",
+                `現在のポイントと所有アイテムを全てリセットし、永久獲得倍率を +100% (2倍) 向上させます。\n(現在の転生回数: ${state.rebirths} -> ${state.rebirths + 1n})`,
+                true,
+                () => {
+                    state.rebirths += 1n;
+                    state.rebirthMultiplier += 1.0;
+                    state.points = 0n;
+
+                    state.items.forEach(i => {
+                        i.purchased = (i.price === 0n);
+                        i.equipped = (i.price === 0n);
+                        i.level = 0;
+                    });
+
+                    logMessage(`[宇宙転生] 転生が完了しました！現在の倍率: x${state.rebirthMultiplier.toFixed(1)}`);
+                    updateUI();
+                    saveGame();
+                }
+            );
+        };
+
+        /* ==========================================================================
+           6. 開発者認証コード処理
+           ========================================================================== */
+        const DEV_CODES = {
+            'BSS-DEV-7391': { name: 'テストモード', action: () => { state.devTestMode = true; return "デベロッパーテストモード開放"; } },
+            'SR-GOLD-5824': { name: 'ゴールデン武器', action: () => unlockCategoryItems('weapon', 'ゴールデン') },
+            'SR-CPU-6418': { name: 'CPUシリーズ', action: () => unlockCategoryItems('cpu') },
+            'SR-ROCKET-9273': { name: 'ロケット・宇宙船', action: () => { unlockCategoryItems('rocket'); unlockCategoryItems('spaceship'); return "ロケット・宇宙船シリーズ開放"; } },
+            'SR-SECRET-4162': { name: '秘密アイテム', action: () => unlockCategoryItems('secret') },
+            'SR-ULTIMATE-8530': { name: '最終兵器', action: () => unlockCategoryItems('ultimate') },
+            'SR-ALL-2086': { name: '全アイテム開放', action: () => {
+                state.items.forEach(i => i.purchased = true);
+                return "全アイテムが開放されました";
+            } }
+        };
+
+        function unlockCategoryItems(category, filterKeyword = null) {
+            let count = 0;
+            state.items.forEach(i => {
+                if (i.category === category) {
+                    if (!filterKeyword || i.name.includes(filterKeyword)) {
+                        i.purchased = true;
+                        count++;
+                    }
+                }
+            });
+            return `${count}個の対象アイテムを開放しました`;
+        }
+
+        document.getElementById('btnDevAuth').onclick = () => {
+            const input = document.getElementById('devCodeInput');
+            const msg = document.getElementById('devMessage');
+            const code = input.value.trim();
+
+            if (DEV_CODES[code]) {
+                let res = DEV_CODES[code].action();
+                msg.className = "text-[10px] mt-2 text-green-400 font-mono";
+                msg.innerText = `SUCCESS: ${res}`;
+                logMessage(`[開発者コード] コード [${code}] 認証成功`);
+                updateUI();
+            } else {
+                msg.className = "text-[10px] mt-2 text-red-400 font-mono";
+                msg.innerText = "ERROR: 無効な認証コードです";
+            }
+            input.value = '';
+        };
+
+        /* ==========================================================================
+           7. セーブ / ロード システム
+           ========================================================================== */
+        const SAVE_KEY = "SPACE_RUSH_SAVE_DATA_V1";
+
+        function saveGame() {
+            try {
+                const saveData = {
+                    points: state.points.toString(),
+                    totalPoints: state.totalPoints.toString(),
+                    totalClicks: state.totalClicks.toString(),
+                    rebirths: state.rebirths.toString(),
+                    rebirthMultiplier: state.rebirthMultiplier,
+                    devTestMode: state.devTestMode,
+                    items: state.items.map(i => ({
+                        id: i.id,
+                        purchased: i.purchased,
+                        equipped: i.equipped,
+                        level: i.level
+                    }))
+                };
+                localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+                logMessage("[セーブ完了] ゲームデータを保存しました。");
+            } catch (err) {
+                console.error("Save Error:", err);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return;
+
+                const data = JSON.parse(raw);
+                state.points = BigInt(data.points || "0");
+                state.totalPoints = BigInt(data.totalPoints || "0");
+                state.totalClicks = BigInt(data.totalClicks || "0");
+                state.rebirths = BigInt(data.rebirths || "0");
+                state.rebirthMultiplier = data.rebirthMultiplier || 1.0;
+                state.devTestMode = !!data.devTestMode;
+
+                if (Array.isArray(data.items)) {
+                    data.items.forEach(savedItem => {
+                        let item = state.items.find(i => i.id === savedItem.id);
+                        if (item) {
+                            item.purchased = savedItem.purchased;
+                            item.equipped = savedItem.equipped;
+                            item.level = savedItem.level || 0;
+                        }
+                    });
+                }
+                logMessage("[ロード完了] セーブデータを復元しました。");
+            } catch (err) {
+                console.error("Load Error:", err);
+            }
+        }
+
+        function resetGame() {
+            showModal("データの初期化", "本当にすべての進行状況を削除して初期化しますか？", true, () => {
+                localStorage.removeItem(SAVE_KEY);
+                location.reload();
+            });
+        }
+
+        /* ==========================================================================
+           8. モーダル・ダイアログ・イベント
+           ========================================================================== */
+        function showModal(title, bodyText, isConfirm = false, onConfirm = null) {
+            const overlay = document.getElementById('modalOverlay');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerText = bodyText;
+
+            const btnCancel = document.getElementById('modalBtnCancel');
+            const btnConfirm = document.getElementById('modalBtnConfirm');
+
+            btnCancel.classList.toggle('hidden', !isConfirm);
+
+            btnConfirm.onclick = () => {
+                overlay.classList.add('hidden');
+                if (onConfirm) onConfirm();
+            };
+            btnCancel.onclick = () => overlay.classList.add('hidden');
+
+            overlay.classList.remove('hidden');
+        }
+
+        function logMessage(msg) {
+            const log = document.getElementById('gameLog');
+            const entry = document.createElement('div');
+            entry.innerText = msg;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                triggerClick(null);
+            }
+        });
+
+        document.getElementById('mainClickBtn').addEventListener('click', (e) => {
+            triggerClick(e);
+        });
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            state.searchQuery = e.target.value;
+            renderShop();
+        });
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            state.sortBy = e.target.value;
+            renderShop();
+        });
+
+        document.getElementById('btnSave').onclick = () => saveGame();
+        document.getElementById('btnReset').onclick = () => resetGame();
+
+        /* ==========================================================================
+           9. 初期化
+           ========================================================================== */
+        window.onload = function() {
+            state.items = generateItemDatabase();
+            loadGame();
+            initCategoryTabs();
+            updateUI();
+
+            // 自動収入ループ
+            setInterval(() => {
+                const stats = recalculateStats();
+                if (stats.autoIncome > 0n) {
+                    state.points += stats.autoIncome;
+                    state.totalPoints += stats.autoIncome;
+                    updateUI();
+                }
+            }, 1000);
+
+            // オートセーブ
+            setInterval(() => {
+                saveGame();
+            }, 30000);
+        };
+    </script>
+</body>
+</html>
